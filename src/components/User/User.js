@@ -8,11 +8,11 @@ import {
   ModalBody,
   FormGroup,
   ModalFooter,
+  Spinner
 } from "reactstrap";
 
 
-//const BASE_URL = process.env.REACT_APP_API_URL;
-const BASE_URL = 'http://localhost:3000/';
+const BASE_URL = process.env.REACT_APP_API_URL;
 const PATH_CUSTOMERS = 'customers';
 
 class User extends React.Component {
@@ -31,7 +31,8 @@ class User extends React.Component {
         address: "",
         firstName: "",
         lastName: ""
-      }
+      },
+      mostrarCargando: false
     };
   }
 
@@ -68,7 +69,7 @@ class User extends React.Component {
 
   editar = (dato) => {
     this.actualizarCustomer(dato);
-    this.setState({modalActualizar: false });
+    this.setState({ modalActualizar: false });
   };
 
   eliminar = (dato) => {
@@ -106,6 +107,12 @@ class User extends React.Component {
           <br />
           <br />
           <Table>
+            {this.state.mostrarCargando ? (
+              <Spinner
+                size="xl" type="grow"
+                color="primary"
+              />
+            ) : null}
             <thead>
               <tr>
                 <th>Email</th>
@@ -332,11 +339,12 @@ class User extends React.Component {
 
 
   cargarCustomers() {
+    this.setState({ mostrarCargando: true });
     fetch(`${BASE_URL}${PATH_CUSTOMERS}`)
       .then(result => result.json())
       .then(
         (result) => {
-          this.setState({ data: result });
+          this.setState({ data: result, mostrarCargando: false });
         },
         // Nota: es importante manejar errores aquí y no en 
         // un bloque catch() para que no interceptemos errores
@@ -349,7 +357,6 @@ class User extends React.Component {
 
 
   crearCustomer(customer) {
-    // Simple POST request with a JSON body using fetch
     const requestOptions = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -368,7 +375,6 @@ class User extends React.Component {
   }
 
   borrarCustomer(id) {
-    // Simple POST request with a JSON body using fetch
     const requestOptions = {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' }
