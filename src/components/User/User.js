@@ -25,6 +25,7 @@ class User extends React.Component {
       modalActualizar: false,
       modalInsertar: false,
       form: {
+        _id: "",
         email: "",
         phoneNumber: "",
         address: "",
@@ -49,7 +50,16 @@ class User extends React.Component {
   };
 
   mostrarModalInsertar = () => {
-    this.setState({ modalInsertar: true });
+    this.setState({
+      modalInsertar: true, form: {
+
+        email: "",
+        phoneNumber: "",
+        address: "",
+        firstName: "",
+        lastName: ""
+      }
+    });
   };
 
   cerrarModalInsertar = () => {
@@ -57,35 +67,14 @@ class User extends React.Component {
   };
 
   editar = (dato) => {
-    let contador = 0;
-    let arregloUsuarios = this.state.data;
-    arregloUsuarios.map((registro) => {
-      if (dato._id === registro._id) {
-        arregloUsuarios[contador].firstName = dato.firstName;
-        arregloUsuarios[contador].lastName = dato.lastName;
-        arregloUsuarios[contador].email = dato.email;
-        arregloUsuarios[contador].phoneNumber = dato.phoneNumber;
-        arregloUsuarios[contador].address = dato.address;
-      }
-      contador++;
-    });
-
-    this.setState({ data: arregloUsuarios, modalActualizar: false });
+    this.actualizarCustomer(dato);
+    this.setState({modalActualizar: false });
   };
 
   eliminar = (dato) => {
     let opcion = window.confirm("¿Está seguro que desea eliminar a " + dato.firstName + "?");
     if (opcion) {
-      let contador = 0;
-      let arregloUsuarios = this.state.data;
-      arregloUsuarios.map((registro) => {
-        if (dato._id === registro._id) {
-          arregloUsuarios.splice(contador, 1);
-        }
-        contador++;
-      });
-
-      this.setState({ data: arregloUsuarios });
+      this.borrarCustomer(dato._id)
     }
 
   };
@@ -94,7 +83,7 @@ class User extends React.Component {
     let usuarioACrear = { ...this.state.form };
 
     this.crearCustomer(usuarioACrear);
-    this.setState({modalInsertar: false });
+    this.setState({ modalInsertar: false });
 
   }
 
@@ -367,6 +356,42 @@ class User extends React.Component {
       body: JSON.stringify(customer)
     };
     fetch(`${BASE_URL}${PATH_CUSTOMERS}`, requestOptions)
+      .then(result => result.json())
+      .then(
+        (result) => {
+          this.cargarCustomers();
+        },
+        (error) => {
+          console.log(error);
+        }
+      );
+  }
+
+  borrarCustomer(id) {
+    // Simple POST request with a JSON body using fetch
+    const requestOptions = {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' }
+    };
+    fetch(`${BASE_URL}${PATH_CUSTOMERS}/${id}`, requestOptions)
+      .then(result => result.json())
+      .then(
+        (result) => {
+          this.cargarCustomers();
+        },
+        (error) => {
+          console.log(error);
+        }
+      );
+  }
+
+  actualizarCustomer(customer) {
+    const requestOptions = {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(customer)
+    };
+    fetch(`${BASE_URL}${PATH_CUSTOMERS}/${customer._id}`, requestOptions)
       .then(result => result.json())
       .then(
         (result) => {
