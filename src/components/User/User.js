@@ -10,13 +10,10 @@ import {
   ModalFooter,
 } from "reactstrap";
 
-const data = [
-  { id: 1, email: "homero.simpson@gmail.com", phoneNumber: "12345667", address: "Av Simpre Viva 123", firstName: "Homero", lastName: "Simpson" },
-  { id: 2, email: "bart.simpson@gmail.com", phoneNumber: "12345667", address: "Av Simpre Viva 123", firstName: "Bart", lastName: "Simpson" },
-  { id: 3, email: "marge.simpson@gmail.com", phoneNumber: "12345667", address: "Av Simpre Viva 123", firstName: "Marge", lastName: "Simpson" },
-  { id: 4, email: "lisa.simpson@gmail.com", phoneNumber: "12345667", address: "Av Simpre Viva 123", firstName: "Lisa", lastName: "Simpson" },
-  { id: 5, email: "maggy.simpson@gmail.com", phoneNumber: "12345667", address: "Av Simpre Viva 123", firstName: "Maggy", lastName: "Simpson" }
-];
+
+//const BASE_URL = process.env.REACT_APP_API_URL;
+const BASE_URL = 'http://localhost:3000/';
+const PATH_CUSTOMERS = 'customers';
 
 class User extends React.Component {
 
@@ -24,11 +21,10 @@ class User extends React.Component {
     super(props);
 
     this.state = {
-      data: data,
+      data: [],
       modalActualizar: false,
       modalInsertar: false,
       form: {
-        id: "",
         email: "",
         phoneNumber: "",
         address: "",
@@ -38,6 +34,9 @@ class User extends React.Component {
     };
   }
 
+  componentDidMount() {
+    this.cargarCustomers();
+  }
 
   mostrarModalActualizar = (dato) => {
 
@@ -61,7 +60,7 @@ class User extends React.Component {
     let contador = 0;
     let arregloUsuarios = this.state.data;
     arregloUsuarios.map((registro) => {
-      if (dato.id === registro.id) {
+      if (dato._id === registro._id) {
         arregloUsuarios[contador].firstName = dato.firstName;
         arregloUsuarios[contador].lastName = dato.lastName;
         arregloUsuarios[contador].email = dato.email;
@@ -71,7 +70,7 @@ class User extends React.Component {
       contador++;
     });
 
-    this.setState({ data: arregloUsuarios, modalActualizar:false });
+    this.setState({ data: arregloUsuarios, modalActualizar: false });
   };
 
   eliminar = (dato) => {
@@ -80,7 +79,7 @@ class User extends React.Component {
       let contador = 0;
       let arregloUsuarios = this.state.data;
       arregloUsuarios.map((registro) => {
-        if (dato.id === registro.id) {
+        if (dato._id === registro._id) {
           arregloUsuarios.splice(contador, 1);
         }
         contador++;
@@ -93,12 +92,9 @@ class User extends React.Component {
 
   insertar = () => {
     let usuarioACrear = { ...this.state.form };
-    usuarioACrear.id = this.state.data.length + 1;
-    let arregloUsuarios = this.state.data;
 
-    arregloUsuarios.push(usuarioACrear);
-
-    this.setState({ data: arregloUsuarios, modalInsertar: false });
+    this.crearCustomer(usuarioACrear);
+    this.setState({modalInsertar: false });
 
   }
 
@@ -134,7 +130,7 @@ class User extends React.Component {
 
             <tbody>
               {this.state.data.map((dato) => (
-                <tr key={dato.id}>
+                <tr key={dato._id}>
                   <td>{dato.email}</td>
                   <td>{dato.firstName}</td>
                   <td>{dato.lastName}</td>
@@ -157,7 +153,7 @@ class User extends React.Component {
 
         <Modal isOpen={this.state.modalActualizar}>
           <ModalHeader>
-            <div><h3>Actualizar Usuario {this.state.form.id}</h3></div>
+            <div><h3>Actualizar Usuario {this.state.form._id}</h3></div>
           </ModalHeader>
 
           <ModalBody>
@@ -170,7 +166,7 @@ class User extends React.Component {
                 className="form-control"
                 readOnly
                 type="text"
-                value={this.state.form.id}
+                value={this.state.form._id}
               />
             </FormGroup>
 
@@ -264,18 +260,6 @@ class User extends React.Component {
           </ModalHeader>
 
           <ModalBody>
-            <FormGroup>
-              <label>
-                Id:
-              </label>
-
-              <input
-                className="form-control"
-                readOnly
-                type="text"
-                value={this.state.data.length + 1}
-              />
-            </FormGroup>
 
             <FormGroup>
               <label>
@@ -356,5 +340,43 @@ class User extends React.Component {
       </>
     );
   }
+
+
+  cargarCustomers() {
+    fetch(`${BASE_URL}${PATH_CUSTOMERS}`)
+      .then(result => result.json())
+      .then(
+        (result) => {
+          this.setState({ data: result });
+        },
+        // Nota: es importante manejar errores aquí y no en 
+        // un bloque catch() para que no interceptemos errores
+        // de errores reales en los componentes.
+        (error) => {
+          console.log(error);
+        }
+      )
+  }
+
+
+  crearCustomer(customer) {
+    // Simple POST request with a JSON body using fetch
+    const requestOptions = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(customer)
+    };
+    fetch(`${BASE_URL}${PATH_CUSTOMERS}`, requestOptions)
+      .then(result => result.json())
+      .then(
+        (result) => {
+          this.cargarCustomers();
+        },
+        (error) => {
+          console.log(error);
+        }
+      );
+  }
+
 }
 export default User;
