@@ -61,20 +61,20 @@ const signInEmailAndPassword = (email, password) => {
     });
 };
 
-const registerWithEmailAndPassword = async (name, email, password) => {
-  try {
-    const res = await createUserWithEmailAndPassword(email, password);
-    const user = res.user;
-    await db.collection(collection).add({
-      uid: user.uid,
-      name,
-      authProvider: "local",
-      email,
-    });
-  } catch (err) {
-    console.error(err);
-    alert(err.message);
-  }
+const registerWithEmailAndPassword = (name, email, password) => {
+  createUserWithEmailAndPassword(auth, email, password)
+  .then((userCredential) => {
+    // Signed in 
+    //const user = userCredential.user;
+    // ...
+  })
+  .catch((error) => {
+    //const errorCode = error.code;
+    //const errorMessage = error.message;
+    alert(error.message);
+    
+    // ..
+  });
 };
 
 const sendPasswordResetEmail = (email) => {

@@ -33,17 +33,6 @@ const User = () => {
   const [user, loading, error] = useAuthState(auth);
   const [name, setName] = React.useState("");
   const history = useHistory();
-  
-  const logout = () => {
-    auth.signOut().then(function () {
-      // Sign-out successful.
-      console.log("loggedout");
-    }).catch((error) => {
-      // An error happened.
-      const errorCode = error.code;
-      const errorMessage = error.message;
-    });
-  };
 
   const [usuario, setUsuario] = React.useState({
     data: data,
@@ -149,25 +138,25 @@ const User = () => {
   const insertar = () => {
     let usuarioACrear = { ...usuario.form };
     user.getIdToken(true).then(token => {
-    const requestOptions = {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(usuarioACrear)
-    };
-    fetch(`${BASE_URL}${PATH_CUSTOMERS}`, requestOptions)
-      .then(
-        (response) => {
-          response.json();
-          setNewVal(newVal + 1);
+      const requestOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-        (error) => {
-          setIsLoaded(true);
-          setErrors(error);
-        })
-      });
+        body: JSON.stringify(usuarioACrear)
+      };
+      fetch(`${BASE_URL}${PATH_CUSTOMERS}`, requestOptions)
+        .then(
+          (response) => {
+            response.json();
+            setNewVal(newVal + 1);
+          },
+          (error) => {
+            setIsLoaded(true);
+            setErrors(error);
+          })
+    });
     setModalInsertar(false);
   }
 
@@ -225,18 +214,7 @@ const User = () => {
 
       <>
         <Container>
-        <Container>
-            <Row className="main-container">
-              <Col className="class-col">
-                <Button color="success" onClick={mostrarModalInsertar}>Crear</Button>
-              </Col>
-              <Col className="class-col">
-              </Col>
-              <Col className="class-col">
-                <Button outline color="secondary" onClick={logout} block>Cerrar sesión</Button>
-              </Col>
-            </Row>
-          </Container>
+          <Button color="success" onClick={mostrarModalInsertar}>Crear</Button>
           <br />
           <br />
           <Table>

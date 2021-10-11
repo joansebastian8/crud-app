@@ -16,7 +16,7 @@ import {
 } from "../Firebase/Firebase";
 
 function Register() {
-  
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -30,7 +30,7 @@ function Register() {
       alert("Please enter name");
     }
 
-    registerWithEmailAndPassword(email, password);
+    registerWithEmailAndPassword(name, email, password);
   };
 
 
@@ -38,7 +38,7 @@ function Register() {
     if (loading) return;
     if (user) history.replace("/users");
   }, [user, loading]);
-  
+
   return (
     <Container>
       <FormGroup>
