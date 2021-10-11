@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Alert,
   Table,
   Button,
   Container,
@@ -8,111 +9,237 @@ import {
   ModalBody,
   FormGroup,
   ModalFooter,
-  Spinner
+  Row,
+  Col
 } from "reactstrap";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { useHistory } from "react-router";
+import { getAuth } from "firebase/auth";
 
+const data = [
+];
 
 const BASE_URL = process.env.REACT_APP_API_URL;
 const PATH_CUSTOMERS = 'customers';
 
-class User extends React.Component {
+const User = () => {
 
-  constructor(props) {
-    super(props);
+  const auth = getAuth();
+  const [modalActualizar, setModalActualizar] = React.useState(false);
+  const [modalInsertar, setModalInsertar] = React.useState(false);
+  const [isLoaded, setIsLoaded] = React.useState(false);
+  const [errors, setErrors] = React.useState(null);
+  const [newVal, setNewVal] = React.useState(0);
+  const [user, loading, error] = useAuthState(auth);
+  const [name, setName] = React.useState("");
+  const history = useHistory();
+  
+  const logout = () => {
+    auth.signOut().then(function () {
+      // Sign-out successful.
+      console.log("loggedout");
+    }).catch((error) => {
+      // An error happened.
+      const errorCode = error.code;
+      const errorMessage = error.message;
+    });
+  };
 
-    this.state = {
-      data: [],
-      modalActualizar: false,
-      modalInsertar: false,
+  const [usuario, setUsuario] = React.useState({
+    data: data,
+    form: {
+      email: "",
+      phoneNumber: "",
+      address: "",
+      firstName: "",
+      lastName: ""
+    }
+  });
+
+  React.useEffect(() => {
+    if (loading) return;
+    if (!user) return history.replace("/");
+  }, [user, loading]);
+
+  React.useEffect(() => {
+    if (!user) return history.replace("/");
+    user.getIdToken(true).then(token => {
+      const requestOptions = {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      };
+      fetch(`${BASE_URL}${PATH_CUSTOMERS}`, requestOptions)
+        .then(res => res.json())
+        .then(
+          (result) => {
+            setIsLoaded(true);
+            setUsuario({
+              ...usuario,
+              data: result
+            });
+          },
+          (error) => {
+            setIsLoaded(true);
+            setErrors(error);
+          }
+        )
+    });
+  }, [newVal]);
+
+  const handleChange = (e) => {
+    setUsuario((prevState) => ({
+      ...prevState,
       form: {
-        _id: "",
-        email: "",
-        phoneNumber: "",
-        address: "",
-        firstName: "",
-        lastName: ""
-      },
-      mostrarCargando: false
-    };
-  }
-
-  componentDidMount() {
-    this.cargarCustomers();
-  }
-
-  mostrarModalActualizar = (dato) => {
-
-    this.setState({ modalActualizar: true, form: dato });
-
+        ...prevState.form,
+        [e.target.name]: e.target.value,
+      }
+    }));
   };
 
-  cerrarModalActualizar = () => {
-    this.setState({ modalActualizar: false });
-  };
-
-  mostrarModalInsertar = () => {
-    this.setState({
-      modalInsertar: true, form: {
-
-        email: "",
-        phoneNumber: "",
-        address: "",
-        firstName: "",
-        lastName: ""
+  const mostrarModalActualizar = (e) => {
+    let arregloUsuarios = usuario.data;
+    let userToModify;
+    arregloUsuarios.map((registro) => {
+      if (e.target.id === registro._id) {
+        userToModify = registro;
       }
     });
+    setUsuario({
+      ...usuario,
+      form: userToModify
+    });
+    setModalActualizar(true);
   };
 
-  cerrarModalInsertar = () => {
-    this.setState({ modalInsertar: false });
+  const cerrarModalActualizar = () => {
+    setModalActualizar(false);
   };
 
-  editar = (dato) => {
-    this.actualizarCustomer(dato);
-    this.setState({ modalActualizar: false });
+  const mostrarModalInsertar = () => {
+    setModalInsertar(true);
   };
 
-  eliminar = (dato) => {
-    let opcion = window.confirm("¿Está seguro que desea eliminar a " + dato.firstName + "?");
-    if (opcion) {
-      this.borrarCustomer(dato._id)
-    }
-
+  const cerrarModalInsertar = () => {
+    setModalInsertar(false);
   };
 
-  insertar = () => {
-    let usuarioACrear = { ...this.state.form };
+  const editar = () => {
+    let usuarioAModificar = { ...usuario.form };
+    actualizarCustomer(usuarioAModificar);
+    setModalActualizar(false);
+    setNewVal(newVal + 1);
+  };
 
-    this.crearCustomer(usuarioACrear);
-    this.setState({ modalInsertar: false });
+  const eliminar = (e) => {
+    let arregloUsuarios = usuario.data;
+    arregloUsuarios.map((registro) => {
+      if (e.target.id === registro._id) {
+        let opcion = window.confirm("¿Está seguro que desea eliminar el valor " + registro.firstName + "?");
+        if (opcion) {
+          borrarCustomer(registro._id);
+        }
+      }
+    });
+    setNewVal(newVal + 1);
+  };
 
+  const insertar = () => {
+    let usuarioACrear = { ...usuario.form };
+    user.getIdToken(true).then(token => {
+    const requestOptions = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(usuarioACrear)
+    };
+    fetch(`${BASE_URL}${PATH_CUSTOMERS}`, requestOptions)
+      .then(
+        (response) => {
+          response.json();
+          setNewVal(newVal + 1);
+        },
+        (error) => {
+          setIsLoaded(true);
+          setErrors(error);
+        })
+      });
+    setModalInsertar(false);
   }
 
-  handleChange = (e) => {
-    this.setState({
-      form: {
-        ...this.state.form,
-        [e.target.name]: e.target.value,
-      },
+  const borrarCustomer = (id) => {
+    user.getIdToken(true).then(token => {
+      const requestOptions = {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      };
+      fetch(`${BASE_URL}${PATH_CUSTOMERS}/${id}`, requestOptions)
+        .then(result => result.json())
+        .then(
+          (result) => {
+            setNewVal(newVal + 1);
+          },
+          (error) => {
+            console.log(error);
+          }
+        );
     });
-  };
+  }
 
-  render() {
+  const actualizarCustomer = (customer) => {
+    user.getIdToken(true).then(token => {
+      const requestOptions = {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(customer)
+      };
+      fetch(`${BASE_URL}${PATH_CUSTOMERS}/${customer._id}`, requestOptions)
+        .then(result => result.json())
+        .then(
+          (result) => {
+            setNewVal(newVal + 1);
+          },
+          (error) => {
+            console.log(error);
+          }
+        );
+    });
+  }
 
+  if (error) {
+    return <Alert color="danger">
+      Error: {error.message}
+    </Alert>;
+  } else {
     return (
+
       <>
         <Container>
-          <br />
-          <Button color="success" onClick={() => this.mostrarModalInsertar()}>Crear</Button>
+        <Container>
+            <Row className="main-container">
+              <Col className="class-col">
+                <Button color="success" onClick={mostrarModalInsertar}>Crear</Button>
+              </Col>
+              <Col className="class-col">
+              </Col>
+              <Col className="class-col">
+                <Button outline color="secondary" onClick={logout} block>Cerrar sesión</Button>
+              </Col>
+            </Row>
+          </Container>
           <br />
           <br />
           <Table>
-            {this.state.mostrarCargando ? (
-              <Spinner
-                size="xl" type="grow"
-                color="primary"
-              />
-            ) : null}
             <thead>
               <tr>
                 <th>Email</th>
@@ -125,7 +252,7 @@ class User extends React.Component {
             </thead>
 
             <tbody>
-              {this.state.data.map((dato) => (
+              {usuario.data.map((dato) => (
                 <tr key={dato._id}>
                   <td>{dato.email}</td>
                   <td>{dato.firstName}</td>
@@ -134,12 +261,12 @@ class User extends React.Component {
                   <td>{dato.phoneNumber}</td>
                   <td>
                     <Button
-                      color="primary"
-                      onClick={() => this.mostrarModalActualizar(dato)}
+                      color="primary" id={dato._id}
+                      onClick={mostrarModalActualizar}
                     >
                       Editar
                     </Button>{" "}
-                    <Button color="danger" onClick={() => this.eliminar(dato)}>Eliminar</Button>
+                    <Button id={dato._id} color="danger" onClick={eliminar}>Eliminar</Button>
                   </td>
                 </tr>
               ))}
@@ -147,9 +274,9 @@ class User extends React.Component {
           </Table>
         </Container>
 
-        <Modal isOpen={this.state.modalActualizar}>
+        <Modal isOpen={modalActualizar}>
           <ModalHeader>
-            <div><h3>Actualizar Usuario {this.state.form._id}</h3></div>
+            <div><h3>Actualizar Usuario {usuario.form._id}</h3></div>
           </ModalHeader>
 
           <ModalBody>
@@ -162,7 +289,7 @@ class User extends React.Component {
                 className="form-control"
                 readOnly
                 type="text"
-                value={this.state.form._id}
+                value={usuario.form._id}
               />
             </FormGroup>
 
@@ -174,8 +301,8 @@ class User extends React.Component {
                 className="form-control"
                 name="email"
                 type="text"
-                onChange={this.handleChange}
-                value={this.state.form.email}
+                onChange={handleChange}
+                value={usuario.form.email}
                 required
               />
             </FormGroup>
@@ -188,8 +315,8 @@ class User extends React.Component {
                 className="form-control"
                 name="firstName"
                 type="text"
-                onChange={this.handleChange}
-                value={this.state.form.firstName}
+                onChange={handleChange}
+                value={usuario.form.firstName}
               />
             </FormGroup>
 
@@ -201,8 +328,8 @@ class User extends React.Component {
                 className="form-control"
                 name="lastName"
                 type="text"
-                onChange={this.handleChange}
-                value={this.state.form.lastName}
+                onChange={handleChange}
+                value={usuario.form.lastName}
               />
             </FormGroup>
 
@@ -214,8 +341,8 @@ class User extends React.Component {
                 className="form-control"
                 name="address"
                 type="text"
-                onChange={this.handleChange}
-                value={this.state.form.address}
+                onChange={handleChange}
+                value={usuario.form.address}
               />
             </FormGroup>
             <FormGroup>
@@ -226,8 +353,8 @@ class User extends React.Component {
                 className="form-control"
                 name="phoneNumber"
                 type="text"
-                onChange={this.handleChange}
-                value={this.state.form.phoneNumber}
+                onChange={handleChange}
+                value={usuario.form.phoneNumber}
               />
             </FormGroup>
           </ModalBody>
@@ -235,13 +362,13 @@ class User extends React.Component {
           <ModalFooter>
             <Button
               color="primary"
-              onClick={() => this.editar(this.state.form)}
+              onClick={editar}
             >
               Actualizar
             </Button>
             <Button
               className="btn btn-danger"
-              onClick={() => this.cerrarModalActualizar()}
+              onClick={cerrarModalActualizar}
             >
               Cancelar
             </Button>
@@ -250,13 +377,12 @@ class User extends React.Component {
 
 
 
-        <Modal isOpen={this.state.modalInsertar}>
+        <Modal isOpen={modalInsertar}>
           <ModalHeader>
             <div><h3>Insertar Usuario</h3></div>
           </ModalHeader>
 
           <ModalBody>
-
             <FormGroup>
               <label>
                 Email:
@@ -265,7 +391,7 @@ class User extends React.Component {
                 className="form-control"
                 name="email"
                 type="text"
-                onChange={this.handleChange}
+                onChange={handleChange}
                 required
               />
             </FormGroup>
@@ -278,7 +404,7 @@ class User extends React.Component {
                 className="form-control"
                 name="firstName"
                 type="text"
-                onChange={this.handleChange}
+                onChange={handleChange}
               />
             </FormGroup>
 
@@ -290,7 +416,7 @@ class User extends React.Component {
                 className="form-control"
                 name="lastName"
                 type="text"
-                onChange={this.handleChange}
+                onChange={handleChange}
               />
             </FormGroup>
 
@@ -302,7 +428,7 @@ class User extends React.Component {
                 className="form-control"
                 name="address"
                 type="text"
-                onChange={this.handleChange}
+                onChange={handleChange}
               />
             </FormGroup>
             <FormGroup>
@@ -313,21 +439,20 @@ class User extends React.Component {
                 className="form-control"
                 name="phoneNumber"
                 type="text"
-                onChange={this.handleChange}
+                onChange={handleChange}
               />
             </FormGroup>
           </ModalBody>
-
           <ModalFooter>
             <Button
               color="primary"
-              onClick={() => this.insertar()}
+              onClick={insertar}
             >
               Insertar
             </Button>
             <Button
               className="btn btn-danger"
-              onClick={() => this.cerrarModalInsertar()}
+              onClick={cerrarModalInsertar}
             >
               Cancelar
             </Button>
@@ -336,78 +461,5 @@ class User extends React.Component {
       </>
     );
   }
-
-
-  cargarCustomers() {
-    this.setState({ mostrarCargando: true });
-    fetch(`${BASE_URL}${PATH_CUSTOMERS}`)
-      .then(result => result.json())
-      .then(
-        (result) => {
-          this.setState({ data: result, mostrarCargando: false });
-        },
-        // Nota: es importante manejar errores aquí y no en 
-        // un bloque catch() para que no interceptemos errores
-        // de errores reales en los componentes.
-        (error) => {
-          console.log(error);
-        }
-      )
-  }
-
-
-  crearCustomer(customer) {
-    const requestOptions = {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(customer)
-    };
-    fetch(`${BASE_URL}${PATH_CUSTOMERS}`, requestOptions)
-      .then(result => result.json())
-      .then(
-        (result) => {
-          this.cargarCustomers();
-        },
-        (error) => {
-          console.log(error);
-        }
-      );
-  }
-
-  borrarCustomer(id) {
-    const requestOptions = {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' }
-    };
-    fetch(`${BASE_URL}${PATH_CUSTOMERS}/${id}`, requestOptions)
-      .then(result => result.json())
-      .then(
-        (result) => {
-          this.cargarCustomers();
-        },
-        (error) => {
-          console.log(error);
-        }
-      );
-  }
-
-  actualizarCustomer(customer) {
-    const requestOptions = {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(customer)
-    };
-    fetch(`${BASE_URL}${PATH_CUSTOMERS}/${customer._id}`, requestOptions)
-      .then(result => result.json())
-      .then(
-        (result) => {
-          this.cargarCustomers();
-        },
-        (error) => {
-          console.log(error);
-        }
-      );
-  }
-
 }
 export default User;
