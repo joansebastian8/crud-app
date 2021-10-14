@@ -119,7 +119,6 @@ const User = () => {
     let usuarioAModificar = { ...usuario.form };
     actualizarCustomer(usuarioAModificar);
     setModalActualizar(false);
-    setNewVal(newVal + 1);
   };
 
   const eliminar = (e) => {
@@ -132,11 +131,16 @@ const User = () => {
         }
       }
     });
-    setNewVal(newVal + 1);
   };
 
   const insertar = () => {
-    let usuarioACrear = { ...usuario.form };
+    let customerACrear = { ...usuario.form };
+    crearCustomer(customerACrear);
+    setModalInsertar(false);
+  }
+
+
+  const crearCustomer = (customerACrear) =>{
     user.getIdToken(true).then(token => {
       const requestOptions = {
         method: 'POST',
@@ -144,7 +148,7 @@ const User = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(usuarioACrear)
+        body: JSON.stringify(customerACrear)
       };
       fetch(`${BASE_URL}${PATH_CUSTOMERS}`, requestOptions)
         .then(
@@ -157,7 +161,6 @@ const User = () => {
             setErrors(error);
           })
     });
-    setModalInsertar(false);
   }
 
   const borrarCustomer = (id) => {
